@@ -1,13 +1,28 @@
 class Ticket < ApplicationRecord
   belongs_to :order
   belongs_to :ticket_type
-
-  # TODO: complete the folowing
-  # before_xxxxx :update_stats
+  before_validation :check_availability
+  after_create :update_stats_create
+  after_destroy :update_stats_destroy
 
   private
-    def update_stats
+    def check_availability
+      es = self.ticket_type.event
+      raise "full event" if es.event_stat.attendance == es.event_venue.capacity
+    end
+    def update_stats_create
+      puts "Ticket created"
       es = self.ticket_type.event.event_stat
-      # TODO: complete in order to update event stats
+      es.attendance += 1
+      es.total_sales += self.ticket_type.ticket_price
+      es.save!
+    end
+
+    def update_stats_update
+      puts "Ticket destroyed"
+      es = self.ticket_type.event.event_stat
+      es.attendance -= 1
+      es.total_sales -= self.ticket_type.ticket_price
+      es.save!
     end
 end
